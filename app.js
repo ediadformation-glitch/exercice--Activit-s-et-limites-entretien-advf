@@ -35,7 +35,7 @@ Aujourd'hui, nous accueillons Alex, un nouveau collègue qui débute dans le mé
 À travers ce questionnaire, vous allez préparer les conseils et les mises en garde que vous lui donnerez pour garantir une intervention efficace, sécurisée et respectueuse chez nos clients.
 Merci pour votre engagement !`,
   instruction: "🔎 Pour chaque situation qui suit, proposez votre réponse et justifiez-la en expliquant le raisonnement professionnel qui vous guide.",
-  timing: "⏳ Vous pouvez travailler seul ou en petit groupe. vous disposez d’1H"
+  timing: "⏳ Vous pouvez travailler seul ou en petit groupe. vous disposez de 30 minutes"
 };
 
 const sections = [
@@ -68,7 +68,7 @@ const sections = [
     questions: [
       "Question : Quelles sont, selon votre expérience, les tâches essentielles qu'il doit réaliser dans ces pièces pour garantir un environnement \"confortable\" ?",
       "Dans quel ordre ? Justifiez votre réponse :",
-      "Quels impacts cela aura t-il  l'impact pour le client ?"
+      "Quels impacts cela aura t-il pour le client ?"
     ]
   },
   {
@@ -359,6 +359,7 @@ function renderSection() {
   document.querySelectorAll("textarea[data-answer-id]").forEach((textarea) => autoResize(textarea));
   elements.previous.disabled = state.currentSection === 0;
   elements.previous.setAttribute("aria-disabled", String(state.currentSection === 0));
+  elements.check.hidden = isSelfEvaluation;
   elements.next.textContent = state.currentSection === sections.length - 1 ? "Vérifier mon travail" : "Suivant →";
 }
 
