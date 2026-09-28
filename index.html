@@ -130,15 +130,15 @@
     <dialog id="email-dialog" class="modal">
       <form id="email-form" class="modal-card" novalidate>
         <button class="modal-close" type="button" data-close-dialog aria-label="Fermer">×</button>
-        <h2>Envoyer ma copie par e-mail</h2>
+        <h2>Terminer et envoyer ma copie</h2>
         <div class="field">
           <label for="trainer-email">Adresse e-mail du formateur</label>
           <input id="trainer-email" name="trainerEmail" type="email" inputmode="email" autocomplete="email" required>
         </div>
         <p id="email-error" class="form-error" role="alert" hidden>Veuillez saisir une adresse e-mail valide.</p>
-        <p id="email-length-warning" class="email-warning" role="status" hidden>Votre copie est trop longue pour être intégrée directement au mail. Téléchargez-la en PDF puis joignez le fichier au message.</p>
+        <p class="email-note" role="note"><strong>Une seule validation :</strong> le PDF sera enregistré automatiquement sur l’appareil et toutes vos réponses seront écrites directement dans le mail. La copie complète sera aussi copiée ; si votre messagerie coupe le texte, utilisez <strong>Ctrl + V</strong>.</p>
         <div class="modal-actions">
-          <button class="glass-button glass-button--primary" type="submit">Préparer le message</button>
+          <button class="glass-button glass-button--primary" type="submit">Enregistrer le PDF et ouvrir l’e-mail</button>
           <button class="glass-button" type="button" data-close-dialog>Annuler</button>
         </div>
       </form>

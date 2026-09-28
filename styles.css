@@ -715,12 +715,13 @@ textarea:focus {
 
 .modal-actions { margin-top: 1.4rem; }
 
-.email-warning {
+.email-note {
   padding: 1rem;
+  border: 1px solid rgba(16, 79, 91, .18);
   border-radius: var(--radius-md);
-  color: #704c0b;
-  background: #fff2cf;
-  font-weight: 750;
+  color: var(--teal-deep);
+  background: var(--mint);
+  line-height: 1.55;
 }
 
 .filename {

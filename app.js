@@ -311,7 +311,6 @@ const elements = {
   emailSubmit: document.querySelector("#email-form button[type=\"submit\"]"),
   trainerEmail: document.querySelector("#trainer-email"),
   emailError: document.querySelector("#email-error"),
-  emailWarning: document.querySelector("#email-length-warning"),
   printDialog: document.querySelector("#print-dialog"),
   recommendedFilename: document.querySelector("#recommended-filename"),
   openPrint: document.querySelector("#open-print-button"),
@@ -668,38 +667,190 @@ function sanitizeFilenamePart(value) {
   return normalize(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "SansNom";
 }
 
+function learnerPdfFilename() {
+  return `ADVF_${sanitizeFilenamePart(state.learner.lastName).toUpperCase()}_${sanitizeFilenamePart(state.learner.firstName)}_Activites_limites_prestations.pdf`;
+}
+
 function preparePrint() {
   renderCopy();
-  elements.recommendedFilename.textContent = `ADVF_${sanitizeFilenamePart(state.learner.lastName).toUpperCase()}_${sanitizeFilenamePart(state.learner.firstName)}_Activites_limites_prestations.pdf`;
+  elements.recommendedFilename.textContent = learnerPdfFilename();
   elements.printDialog.showModal();
 }
 
-function emailBody(includeFullCopy) {
+function pdfSafeText(value) {
+  return String(value ?? "")
+    .replaceAll("œ", "oe")
+    .replaceAll("Œ", "OE")
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replaceAll("…", "...")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\x0A\x20-\x7E]/g, "");
+}
+
+function wrapPdfText(text, maxCharacters = 86) {
+  const lines = [];
+  pdfSafeText(text).split("\n").forEach((paragraph) => {
+    const words = paragraph.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) {
+      lines.push("");
+      return;
+    }
+    let line = "";
+    words.forEach((word) => {
+      const candidate = line ? `${line} ${word}` : word;
+      if (candidate.length <= maxCharacters) {
+        line = candidate;
+      } else {
+        if (line) lines.push(line);
+        line = word;
+      }
+    });
+    if (line) lines.push(line);
+  });
+  return lines;
+}
+
+function escapePdfString(value) {
+  return pdfSafeText(value).replaceAll("\\", "\\\\").replaceAll("(", "\\(").replaceAll(")", "\\)");
+}
+
+function buildPdfFile() {
+  const pages = [[]];
+  let currentPage = pages[0];
+  let y = 796;
+  const marginBottom = 48;
+
+  function newPage() {
+    currentPage = [];
+    pages.push(currentPage);
+    y = 796;
+  }
+
+  function addText(text, options = {}) {
+    const size = options.size || 10;
+    const lineHeight = options.lineHeight || Math.ceil(size * 1.35);
+    const gapAfter = options.gapAfter ?? 6;
+    const maxCharacters = options.maxCharacters || (size >= 15 ? 58 : size >= 12 ? 70 : 88);
+    wrapPdfText(text, maxCharacters).forEach((line) => {
+      if (y < marginBottom + lineHeight) newPage();
+      currentPage.push({
+        text: line,
+        y,
+        size,
+        bold: Boolean(options.bold),
+        color: options.color || "0.09 0.18 0.21"
+      });
+      y -= lineHeight;
+    });
+    y -= gapAfter;
+  }
+
+  addText("Travail ADVF - Activites et limites des prestations", { bold: true, size: 18, lineHeight: 23, color: "0.06 0.31 0.36", gapAfter: 14 });
+  addText(`Prenom : ${state.learner.firstName}    Nom : ${state.learner.lastName}    Groupe : ${state.learner.group || "-"}    Date : ${formatDate()}`, { bold: true, size: 10, gapAfter: 16 });
+
+  sections.forEach((section, sectionIndex) => {
+    const label = sectionIndex < 10 ? `Situation ${sectionIndex + 1} - ${section.nav}` : "Auto-evaluation";
+    addText(label, { bold: true, size: 13, lineHeight: 17, color: "0.06 0.31 0.36", gapAfter: 5 });
+    if (sectionIndex < 10) addText(section.situation, { size: 9, color: "0.28 0.34 0.36", gapAfter: 7 });
+    section.questions.forEach((question, questionIndex) => {
+      const id = `s${sectionIndex + 1}-q${questionIndex + 1}`;
+      addText(question, { bold: true, size: 9, lineHeight: 12, gapAfter: 3 });
+      addText(answerFor(id), { size: 10, lineHeight: 14, gapAfter: 7 });
+      if (sectionIndex === sections.length - 1 && questionIndex === 0) {
+        addText(`Note de satisfaction : ${state.rating}/10`, { bold: true, size: 10, gapAfter: 7 });
+      }
+    });
+    y -= 8;
+  });
+
+  const pageObjectNumbers = pages.map((_, index) => 5 + index * 2);
+  const objects = [];
+  objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
+  objects[2] = `<< /Type /Pages /Kids [${pageObjectNumbers.map((number) => `${number} 0 R`).join(" ")}] /Count ${pages.length} >>`;
+  objects[3] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>";
+  objects[4] = "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>";
+
+  pages.forEach((lines, index) => {
+    const pageNumber = pageObjectNumbers[index];
+    const streamNumber = pageNumber + 1;
+    const stream = lines.map((line) => `BT /F${line.bold ? 2 : 1} ${line.size} Tf ${line.color} rg 46 ${line.y} Td (${escapePdfString(line.text)}) Tj ET`).join("\n");
+    objects[pageNumber] = `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${streamNumber} 0 R >>`;
+    objects[streamNumber] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
+  });
+
+  let pdf = "%PDF-1.4\n";
+  const offsets = [0];
+  for (let index = 1; index < objects.length; index += 1) {
+    offsets[index] = pdf.length;
+    pdf += `${index} 0 obj\n${objects[index]}\nendobj\n`;
+  }
+  const xrefOffset = pdf.length;
+  pdf += `xref\n0 ${objects.length}\n0000000000 65535 f \n`;
+  for (let index = 1; index < objects.length; index += 1) {
+    pdf += `${String(offsets[index]).padStart(10, "0")} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Size ${objects.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+  return pdf;
+}
+
+function downloadPdfCopy() {
+  const blob = new Blob([buildPdfFile()], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = learnerPdfFilename();
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 10000);
+  return true;
+}
+
+function emailBody() {
   const heading = `Bonjour,\n\nVous trouverez ci-dessous mon travail concernant l'activité \"Activités et limites des prestations – Entretien chez un particulier\".\n\nPrénom : ${state.learner.firstName}\nNom : ${state.learner.lastName}\nGroupe : ${state.learner.group}\nDate : ${formatDate()}\n\n`;
   const ending = `\nCordialement,\n\n${state.learner.firstName} ${state.learner.lastName}`;
-  if (!includeFullCopy) {
-    return `${heading}Ma copie est jointe à ce message au format PDF.\n${ending}`;
-  }
   const content = sections.map((section, sectionIndex) => {
+    const sectionLabel = sectionIndex < 10
+      ? `SITUATION ${sectionIndex + 1} — ${section.nav}`
+      : "AUTO-ÉVALUATION";
     const answers = section.questions.map((question, questionIndex) => {
       const id = `s${sectionIndex + 1}-q${questionIndex + 1}`;
-      let extra = "";
-      if (sectionIndex === sections.length - 1 && questionIndex === 0) {
-        extra = `\n\n${section.rating}\nRéponse de l'apprenant : ${state.rating}\n\n${section.beforeReflection}`;
-      }
-      return `${question}\nRéponse de l'apprenant :\n${answerFor(id)}${extra}`;
+      const rating = sectionIndex === sections.length - 1 && questionIndex === 0
+        ? `\n\nNote de satisfaction : ${state.rating}/10`
+        : "";
+      return `Réponse ${questionIndex + 1} :\n${answerFor(id)}${rating}`;
     }).join("\n\n");
-    return `${section.title}\n${section.situation}\n\n${answers}`;
-  }).join("\n\n--------------------\n\n");
+    return `${sectionLabel}\n${answers}`;
+  }).join("\n\n------------------------------\n\n");
   return `${heading}${content}${ending}`;
+}
+
+async function copyEmailBody(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const fallback = document.createElement("textarea");
+    fallback.value = text;
+    fallback.setAttribute("readonly", "");
+    fallback.style.position = "fixed";
+    fallback.style.opacity = "0";
+    document.body.appendChild(fallback);
+    fallback.select();
+    const copied = document.execCommand("copy");
+    fallback.remove();
+    return copied;
+  }
 }
 
 function openEmailDialog() {
   elements.trainerEmail.value = "";
   elements.emailError.hidden = true;
-  elements.emailWarning.hidden = true;
-  elements.emailForm.dataset.confirmLong = "false";
-  elements.emailSubmit.textContent = "Préparer le message";
+  elements.emailSubmit.disabled = false;
+  elements.emailSubmit.textContent = "Enregistrer le PDF et ouvrir l’e-mail";
   elements.emailDialog.showModal();
 }
 
@@ -750,7 +901,7 @@ elements.content.addEventListener("click", (event) => {
 elements.previous.addEventListener("click", () => moveToSection(state.currentSection - 1));
 elements.next.addEventListener("click", () => state.currentSection === sections.length - 1 ? verifyWork() : moveToSection(state.currentSection + 1));
 elements.check.addEventListener("click", verifyWork);
-elements.finish.addEventListener("click", showCopy);
+elements.finish.addEventListener("click", openEmailDialog);
 elements.backToWork.addEventListener("click", showExercise);
 elements.correctionCopy.addEventListener("click", showCopy);
 
@@ -784,7 +935,7 @@ elements.reset.addEventListener("click", () => {
 document.querySelectorAll(".email-button").forEach((button) => button.addEventListener("click", openEmailDialog));
 document.querySelectorAll(".print-button").forEach((button) => button.addEventListener("click", preparePrint));
 
-elements.emailForm.addEventListener("submit", (event) => {
+elements.emailForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const email = normalize(elements.trainerEmail.value);
   const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -795,16 +946,16 @@ elements.emailForm.addEventListener("submit", (event) => {
   }
 
   const subject = `Travail ADVF – Activités et limites des prestations – ${state.learner.firstName} ${state.learner.lastName.toUpperCase()}`;
-  const fullBody = emailBody(true);
-  const encodedFull = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(fullBody)}`;
-  const isTooLong = encodedFull.length > 1800;
-  elements.emailWarning.hidden = !isTooLong;
-  if (isTooLong && elements.emailForm.dataset.confirmLong !== "true") {
-    elements.emailForm.dataset.confirmLong = "true";
-    elements.emailSubmit.textContent = "Ouvrir un message court";
-    return;
+  const body = emailBody();
+  elements.emailSubmit.disabled = true;
+  elements.emailSubmit.textContent = "Préparation en cours…";
+  try {
+    await downloadPdfCopy();
+    await new Promise((resolve) => window.setTimeout(resolve, 350));
+  } catch (error) {
+    console.error("La création automatique du PDF a échoué.", error);
   }
-  const body = isTooLong ? emailBody(false) : fullBody;
+  await copyEmailBody(body);
   const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   showCorrection(0);
   window.location.href = mailto;
