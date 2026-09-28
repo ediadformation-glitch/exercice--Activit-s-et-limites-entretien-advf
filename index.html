@@ -92,6 +92,25 @@
         </div>
         <div id="copy-preview"></div>
       </section>
+
+      <section id="correction-view" class="correction-view" hidden aria-labelledby="correction-title">
+        <header class="correction-header">
+          <div>
+            <p class="eyebrow">Après votre envoi</p>
+            <h1 id="correction-title">Correction de l'exercice</h1>
+            <p id="correction-progress" class="correction-progress">Situation 1 sur 10</p>
+          </div>
+          <button id="correction-copy-button" class="glass-button" type="button">Revenir à ma copie</button>
+        </header>
+
+        <nav id="correction-nav" class="correction-nav" aria-label="Situations corrigées"></nav>
+        <div id="correction-content"></div>
+
+        <div class="correction-actions" aria-label="Navigation dans la correction">
+          <button id="correction-previous" class="glass-button" type="button">← Correction précédente</button>
+          <button id="correction-next" class="glass-button glass-button--primary" type="button">Correction suivante →</button>
+        </div>
+      </section>
     </main>
 
     <section id="print-copy" class="print-copy" aria-hidden="true"></section>

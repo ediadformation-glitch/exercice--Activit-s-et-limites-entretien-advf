@@ -158,6 +158,99 @@ const sections = [
   }
 ];
 
+const corrections = [
+  {
+    answer: "Alex respecte l’organisation de la cliente. Il peut proposer une amélioration, mais il ne change rien sans son accord.",
+    essentials: [
+      "Prendre connaissance des consignes et des habitudes.",
+      "Demander l’accord avant toute modification.",
+      "Respecter le domicile privé et la discrétion professionnelle."
+    ],
+    remember: "Chez la personne, je m’adapte : je n’impose pas."
+  },
+  {
+    answer: "Alex doit pratiquer l’hygiène des mains aux moments nécessaires et porter les gants ou EPI adaptés à la tâche.",
+    essentials: [
+      "Les gants ne remplacent jamais l’hygiène des mains.",
+      "Sans protection adaptée, il signale le problème et évite la tâche exposante.",
+      "Les risques sont la contamination, l’irritation, la brûlure chimique et l’infection."
+    ],
+    remember: "Mains propres + protection adaptée = sécurité pour tous."
+  },
+  {
+    answer: "Il aère et range, fait le lit, dépoussière les meubles et surfaces accessibles, puis aspire et lave les sols.",
+    essentials: [
+      "Travailler du haut vers le bas et du propre vers le sale.",
+      "Terminer par les sols, puis contrôler et ranger le matériel.",
+      "Le résultat améliore la propreté, le confort, le bien-être et la sécurité du client."
+    ],
+    remember: "Du haut vers le bas ; les sols en dernier."
+  },
+  {
+    answer: "Alex nettoie le réfrigérateur et vérifie les dates ainsi que l’état des aliments. Il signale tout produit douteux ou périmé et demande l’accord avant de le jeter.",
+    essentials: [
+      "Retirer les salissures et limiter les contaminations.",
+      "Repérer les aliments qui peuvent présenter un risque.",
+      "Prévenir les intoxications alimentaires."
+    ],
+    remember: "Je nettoie, je vérifie, je signale."
+  },
+  {
+    answer: "Avant de lancer la machine, Alex trie le linge et lit les étiquettes d’entretien.",
+    essentials: [
+      "Vérifier la matière, la couleur, la température et le programme.",
+      "Utiliser le produit et le dosage adaptés.",
+      "Respecter les consignes et les habitudes de rangement du client."
+    ],
+    remember: "Étiquette d’abord, machine ensuite."
+  },
+  {
+    answer: "Oui, il peut arroser les plantes et nourrir un animal de compagnie si ces tâches sont prévues ou acceptées dans l’intervention.",
+    essentials: [
+      "Ces petits services facilitent le quotidien.",
+      "Respecter les consignes, le temps prévu et les limites de la mission.",
+      "Pas de soin vétérinaire, de toilettage ni d’animal de ferme."
+    ],
+    remember: "J’aide au quotidien sans remplacer un professionnel spécialisé."
+  },
+  {
+    answer: "Alex refuse de déplacer l’armoire. Le mobilier lourd et les charges de plus de 10 kg ne doivent pas être portés ou déplacés.",
+    essentials: [
+      "Proposer uniquement un nettoyage accessible et sans danger.",
+      "Informer le client et, si nécessaire, la structure.",
+      "Les risques sont les TMS, la chute, l’écrasement et la blessure."
+    ],
+    remember: "Si c’est lourd ou dangereux : STOP."
+  },
+  {
+    answer: "Alex n’utilise pas l’ammoniaque. Il emploie seulement des produits ménagers courants, étiquetés et adaptés à la surface.",
+    essentials: [
+      "Lire le mode d’emploi et respecter le dosage.",
+      "Ne jamais mélanger les produits.",
+      "Éviter les brûlures, les vapeurs toxiques et la détérioration du support."
+    ],
+    remember: "Produit connu, étiquette lue, aucun mélange."
+  },
+  {
+    answer: "Alex refuse de décoller le papier peint : c’est un travail de rénovation, pas de l’entretien courant.",
+    essentials: [
+      "Rester dans les tâches prévues par la prestation.",
+      "Ne pas peindre, tapisser, détapisser, décaper ou réaliser de gros nettoyage.",
+      "Expliquer la limite et prévenir la structure en cas de désaccord."
+    ],
+    remember: "J’entretiens ; je ne rénove pas."
+  },
+  {
+    answer: "Alex refuse le nettoyage de la voiture et la prise en charge des brebis : ces tâches ne relèvent pas des missions de l’ADVF.",
+    essentials: [
+      "Pas de lavage extérieur ni d’aspirateur dans un véhicule.",
+      "Pas de gestion des animaux de ferme ou de basse-cour.",
+      "Ces activités exposent à des blessures, à la fuite de l’animal et à des problèmes de responsabilité."
+    ],
+    remember: "Ni véhicule, ni animal de ferme."
+  }
+];
+
 const questionEntries = sections.flatMap((section, sectionIndex) =>
   section.questions.map((question, questionIndex) => ({
     id: `s${sectionIndex + 1}-q${questionIndex + 1}`,
@@ -175,6 +268,8 @@ const emptyState = () => ({
   answers: {},
   rating: "",
   currentSection: 0,
+  currentCorrection: 0,
+  view: "exercise",
   started: false
 });
 
@@ -186,6 +281,7 @@ const elements = {
   welcome: document.querySelector("#welcome-view"),
   exercise: document.querySelector("#exercise-view"),
   copy: document.querySelector("#copy-view"),
+  correction: document.querySelector("#correction-view"),
   identityForm: document.querySelector("#identity-form"),
   identityError: document.querySelector("#identity-error"),
   learnerLine: document.querySelector("#learner-line"),
@@ -218,7 +314,13 @@ const elements = {
   emailWarning: document.querySelector("#email-length-warning"),
   printDialog: document.querySelector("#print-dialog"),
   recommendedFilename: document.querySelector("#recommended-filename"),
-  openPrint: document.querySelector("#open-print-button")
+  openPrint: document.querySelector("#open-print-button"),
+  correctionProgress: document.querySelector("#correction-progress"),
+  correctionNav: document.querySelector("#correction-nav"),
+  correctionContent: document.querySelector("#correction-content"),
+  correctionPrevious: document.querySelector("#correction-previous"),
+  correctionNext: document.querySelector("#correction-next"),
+  correctionCopy: document.querySelector("#correction-copy-button")
 };
 
 function loadState() {
@@ -384,8 +486,11 @@ function renderExercise() {
 }
 
 function showExercise() {
+  state.view = "exercise";
+  persist(false);
   elements.welcome.hidden = true;
   elements.copy.hidden = true;
+  elements.correction.hidden = true;
   elements.exercise.hidden = false;
   renderExercise();
   window.scrollTo({ top: 0, behavior: "smooth" });
@@ -394,6 +499,7 @@ function showExercise() {
 function showWelcome() {
   elements.exercise.hidden = true;
   elements.copy.hidden = true;
+  elements.correction.hidden = true;
   elements.welcome.hidden = false;
   renderWelcomeValues();
 }
@@ -494,10 +600,67 @@ function showCopy() {
     verifyWork();
     return;
   }
+  state.view = "copy";
+  persist(false);
   renderCopy();
   elements.exercise.hidden = true;
   elements.welcome.hidden = true;
+  elements.correction.hidden = true;
   elements.copy.hidden = false;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function renderCorrection() {
+  const index = state.currentCorrection;
+  const section = sections[index];
+  const correction = corrections[index];
+  elements.correctionProgress.textContent = `Situation ${index + 1} sur ${corrections.length}`;
+  elements.correctionNav.innerHTML = corrections.map((_, navIndex) => `
+    <button class="correction-nav-button${navIndex === index ? " is-active" : ""}" type="button" data-correction="${navIndex}" ${navIndex === index ? 'aria-current="step"' : ""}>
+      ${navIndex + 1}
+    </button>`).join("");
+
+  const answers = section.questions.map((question, questionIndex) => {
+    const id = `s${index + 1}-q${questionIndex + 1}`;
+    return `
+      <div class="correction-question">
+        <p class="question-label">${escapeHtml(question)}</p>
+        <div class="learner-answer">
+          <span>Votre réponse</span>
+          <p>${escapeHtml(answerFor(id))}</p>
+        </div>
+      </div>`;
+  }).join("");
+
+  elements.correctionContent.innerHTML = `
+    <article class="correction-card">
+      <p class="part-kicker">Situation ${index + 1}</p>
+      <h2>${escapeHtml(section.title)}</h2>
+      <p class="situation-text">${escapeHtml(section.situation)}</p>
+      <div class="correction-answers">${answers}</div>
+      <section class="essential-correction" aria-label="Correction essentielle">
+        <p class="correction-label">Correction essentielle</p>
+        <p class="correction-answer">${escapeHtml(correction.answer)}</p>
+        <ul>${correction.essentials.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+        <p class="memory-line"><strong>À retenir :</strong> ${escapeHtml(correction.remember)}</p>
+      </section>
+    </article>`;
+
+  elements.correctionPrevious.disabled = index === 0;
+  elements.correctionPrevious.setAttribute("aria-disabled", String(index === 0));
+  elements.correctionNext.textContent = index === corrections.length - 1 ? "Revoir depuis le début ↺" : "Correction suivante →";
+}
+
+function showCorrection(index = state.currentCorrection) {
+  state.currentCorrection = Math.max(0, Math.min(Number(index) || 0, corrections.length - 1));
+  state.view = "correction";
+  persist(false);
+  document.querySelectorAll("dialog[open]").forEach((dialog) => dialog.close());
+  elements.welcome.hidden = true;
+  elements.exercise.hidden = true;
+  elements.copy.hidden = true;
+  elements.correction.hidden = false;
+  renderCorrection();
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -589,6 +752,17 @@ elements.next.addEventListener("click", () => state.currentSection === sections.
 elements.check.addEventListener("click", verifyWork);
 elements.finish.addEventListener("click", showCopy);
 elements.backToWork.addEventListener("click", showExercise);
+elements.correctionCopy.addEventListener("click", showCopy);
+
+elements.correctionNav.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-correction]");
+  if (button) showCorrection(Number(button.dataset.correction));
+});
+
+elements.correctionPrevious.addEventListener("click", () => showCorrection(state.currentCorrection - 1));
+elements.correctionNext.addEventListener("click", () => {
+  showCorrection(state.currentCorrection === corrections.length - 1 ? 0 : state.currentCorrection + 1);
+});
 
 elements.goToMissing.addEventListener("click", () => {
   const first = missingItems()[0];
@@ -632,6 +806,7 @@ elements.emailForm.addEventListener("submit", (event) => {
   }
   const body = isTooLong ? emailBody(false) : fullBody;
   const mailto = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  showCorrection(0);
   window.location.href = mailto;
 });
 
@@ -656,7 +831,9 @@ window.addEventListener("afterprint", () => {
 });
 
 if (state.started && state.learner.firstName && state.learner.lastName) {
-  showExercise();
+  if (state.view === "correction") showCorrection(state.currentCorrection);
+  else if (state.view === "copy") showCopy();
+  else showExercise();
 } else {
   showWelcome();
 }
