@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#102d35">
+    <meta name="description" content="Exercice ADVF sur les activités et les limites des prestations d'entretien chez un particulier.">
+    <title>Travaux CCP1 — Alex et limites de prestation</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23102d35'/%3E%3Cpath d='M18 34l9 9 19-23' fill='none' stroke='%23f4c66e' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Aller au contenu principal</a>
+
+    <main id="main-content">
+      <section id="welcome-view" class="welcome-shell" aria-labelledby="welcome-title">
+        <div class="welcome-card">
+          <p class="eyebrow">Exercice individuel · ADVF</p>
+          <h1 id="welcome-title">⛔ Travaux CCP1 = Alex et limites de prestation (Entretien)</h1>
+          <p class="welcome-note">Votre travail est enregistré automatiquement sur cet appareil.</p>
+
+          <form id="identity-form" class="identity-form" novalidate>
+            <div class="field-grid">
+              <div class="field">
+                <label for="first-name">Prénom</label>
+                <input id="first-name" name="firstName" autocomplete="given-name" required>
+              </div>
+              <div class="field">
+                <label for="last-name">Nom</label>
+                <input id="last-name" name="lastName" autocomplete="family-name" required>
+              </div>
+            </div>
+            <div class="field">
+              <label for="group-name">Groupe / session <span class="optional">(facultatif)</span></label>
+              <input id="group-name" name="group" autocomplete="organization-title">
+            </div>
+            <p id="identity-error" class="form-error" role="alert" hidden>Veuillez renseigner votre prénom et votre nom.</p>
+            <button class="glass-button glass-button--primary" type="submit">Commencer l'exercice</button>
+          </form>
+        </div>
+      </section>
+
+      <div id="exercise-view" class="app-shell" hidden>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Travaux CCP1</p>
+            <p class="learner-line" id="learner-line"></p>
+          </div>
+          <div class="save-state" id="save-state" aria-live="polite">✓ Enregistré</div>
+        </header>
+
+        <aside class="progress-panel" aria-label="Progression de l'exercice">
+          <div class="status-copy">
+            <p id="work-status" class="work-status">◔ Travail en cours</p>
+            <p id="remaining-status">Il reste 27 réponse(s) à compléter.</p>
+          </div>
+          <div class="progress-track" role="progressbar" aria-label="Progression" aria-valuemin="0" aria-valuemax="27" aria-valuenow="0">
+            <span id="progress-bar"></span>
+          </div>
+          <p id="progress-count" class="progress-count">0 réponses complétées sur 27</p>
+        </aside>
+
+        <nav id="section-nav" class="section-nav" aria-label="Parties de l'exercice"></nav>
+
+        <section class="content-area">
+          <div id="exercise-content"></div>
+
+          <div class="step-actions" aria-label="Navigation entre les parties">
+            <button id="previous-button" class="glass-button" type="button">← Précédent</button>
+            <button id="check-button" class="glass-button glass-button--quiet" type="button">Vérifier mon travail</button>
+            <button id="next-button" class="glass-button glass-button--primary" type="button">Suivant →</button>
+          </div>
+
+          <div id="completion-actions" class="completion-actions" hidden>
+            <p class="completion-title">✓ Votre travail est complet</p>
+            <div class="completion-buttons">
+              <button id="finish-button" class="glass-button glass-button--primary" type="button">Terminer</button>
+              <button class="glass-button email-button" type="button">Envoyer ma copie par e-mail</button>
+              <button class="glass-button print-button" type="button">Imprimer / enregistrer ma copie en PDF</button>
+            </div>
+          </div>
+
+          <button id="reset-button" class="reset-button" type="button">Effacer mon travail et recommencer</button>
+        </section>
+      </div>
+
+      <section id="copy-view" class="copy-view" hidden aria-labelledby="copy-view-title">
+        <div class="copy-toolbar no-print">
+          <button id="back-to-work-button" class="glass-button" type="button">← Revenir à mes réponses</button>
+          <button class="glass-button email-button" type="button">Envoyer ma copie par e-mail</button>
+          <button class="glass-button glass-button--primary print-button" type="button">Imprimer / enregistrer ma copie en PDF</button>
+        </div>
+        <div id="copy-preview"></div>
+      </section>
+    </main>
+
+    <section id="print-copy" class="print-copy" aria-hidden="true"></section>
+
+    <dialog id="check-dialog" class="modal">
+      <div class="modal-card">
+        <button class="modal-close" type="button" data-close-dialog aria-label="Fermer">×</button>
+        <h2 id="check-dialog-title">Votre travail n'est pas encore terminé.</h2>
+        <p id="check-dialog-message"></p>
+        <div class="modal-actions">
+          <button id="go-to-missing-button" class="glass-button glass-button--primary" type="button">Aller à la première réponse non complétée</button>
+          <button class="glass-button" type="button" data-close-dialog>Fermer</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog id="email-dialog" class="modal">
+      <form id="email-form" class="modal-card" novalidate>
+        <button class="modal-close" type="button" data-close-dialog aria-label="Fermer">×</button>
+        <h2>Envoyer ma copie par e-mail</h2>
+        <div class="field">
+          <label for="trainer-email">Adresse e-mail du formateur</label>
+          <input id="trainer-email" name="trainerEmail" type="email" inputmode="email" autocomplete="email" required>
+        </div>
+        <p id="email-error" class="form-error" role="alert" hidden>Veuillez saisir une adresse e-mail valide.</p>
+        <p id="email-length-warning" class="email-warning" role="status" hidden>Votre copie est trop longue pour être intégrée directement au mail. Téléchargez-la en PDF puis joignez le fichier au message.</p>
+        <div class="modal-actions">
+          <button class="glass-button glass-button--primary" type="submit">Préparer le message</button>
+          <button class="glass-button" type="button" data-close-dialog>Annuler</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="print-dialog" class="modal">
+      <div class="modal-card">
+        <button class="modal-close" type="button" data-close-dialog aria-label="Fermer">×</button>
+        <h2>Imprimer / enregistrer ma copie en PDF</h2>
+        <p>Dans la fenêtre d’impression, choisissez <strong>Enregistrer au format PDF</strong>.</p>
+        <p>Nom de fichier recommandé :</p>
+        <p id="recommended-filename" class="filename"></p>
+        <div class="modal-actions">
+          <button id="open-print-button" class="glass-button glass-button--primary" type="button">Ouvrir l’impression</button>
+          <button class="glass-button" type="button" data-close-dialog>Annuler</button>
+        </div>
+      </div>
+    </dialog>
+
+    <script src="app.js"></script>
+  </body>
+</html>
